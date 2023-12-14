@@ -13,7 +13,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request){
 			log.Println("error in upgrading : ",err)
 		}
 		defer conn.Close()
-
+		ClientList = append(ClientList, conn)
 		// infinite read loop
 		for {
 			mt, message, err := conn.ReadMessage()
@@ -23,6 +23,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request){
 			log.Println("message recieved : ",string(message))
 			conn.WriteMessage(mt,message)
 		}
+	
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request){
