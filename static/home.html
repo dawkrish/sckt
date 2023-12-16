@@ -6,10 +6,10 @@
     <title>{{.Title}}</title>
     <style>
         body{
-            background-color: aquamarine;
+            background-color: #FAEED1;
         }
         .message{
-            color: chocolate;
+            color: #1B4242;
         }
     </style>
 </head>
@@ -35,7 +35,7 @@
         })
 
         const socket = new WebSocket("ws://localhost:8080/ws")
-
+        console.log(socket)
         socket.onopen = (e) =>{
             socket.send("the connection has opened")
         }

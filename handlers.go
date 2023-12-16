@@ -1,9 +1,10 @@
 package main
 
 import (
+	"html/template"
 	"log"
 	"net/http"
-	"html/template"
+	// "github.com/gorilla/websocket"
 )
 
 func wsHandler(w http.ResponseWriter, r *http.Request){
@@ -13,16 +14,24 @@ func wsHandler(w http.ResponseWriter, r *http.Request){
 			log.Println("error in upgrading : ",err)
 		}
 		defer conn.Close()
-
+		room.ClientList = append(room.ClientList, conn)
 		// infinite read loop
 		for {
 			mt, message, err := conn.ReadMessage()
 			if err != nil {
 				log.Println("read failed: ",err)
 			}
-			log.Println("message recieved : ",string(message))
-			conn.WriteMessage(mt,message)
+			
+			if string(message) == "the connection has opened"{
+				
+				log.Println("message recieved : ",string(message))
+				conn.WriteMessage(mt,message)
+			}else{
+				log.Println("broadcasting message : ",string(message))
+				broadcast(room,mt,message)
+			}
 		}
+	
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request){
@@ -34,4 +43,10 @@ func homeHandler(w http.ResponseWriter, r *http.Request){
 			Title: "Home Page",
 		}
 		t.Execute(w,d)
+}
+
+func broadcast(room Room,mt int,msg []byte){
+	for _,con := range room.ClientList{
+		con.WriteMessage(mt, []byte(msg))
+	}
 }
