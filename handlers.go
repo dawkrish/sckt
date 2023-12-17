@@ -14,7 +14,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request){
 			log.Println("error in upgrading : ",err)
 		}
 		defer conn.Close()
-		room.ClientList = append(room.ClientList, conn)
+		// room.ClientList = append(room.ClientList, conn)
 		// infinite read loop
 		for {
 			mt, message, err := conn.ReadMessage()
@@ -46,7 +46,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request){
 }
 
 func broadcast(room Room,mt int,msg []byte){
-	for _,con := range room.ClientList{
-		con.WriteMessage(mt, []byte(msg))
-	}
+	// for _,con := range room.ClientList{
+	// 	con.WriteMessage(mt, []byte(msg))
+	// }
 }

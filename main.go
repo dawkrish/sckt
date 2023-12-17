@@ -13,10 +13,12 @@ import (
 type DatabaseConfig struct{
 	mongoClient *mongo.Client
 	userColl *mongo.Collection
+	roomColl *mongo.Collection
+	messageColl *mongo.Collection
 
 }
 
-type Room struct{
+type ClientRoom struct{
 	Code int
 	Name string
 	ClientList []*websocket.Conn
@@ -34,7 +36,11 @@ var (
 func main() {
 	conncectToDB()
 	defer dbCfg.mongoClient.Disconnect(context.TODO())
-	getAllUsers()
+	// createUser("vansh","c@c.com", "root")
+	// createUser("anant","d@d.com", "root")
+	// getAllUsers()
+	// deleteAllUsers()
+	createRoom(3478)
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", homeHandler)

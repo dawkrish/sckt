@@ -27,4 +27,6 @@ func conncectToDB() {
 	log.Println("mongo connection established")
 
 	dbCfg.userColl = dbCfg.mongoClient.Database("sckt").Collection("user")
+	dbCfg.roomColl = dbCfg.mongoClient.Database("sckt").Collection("room")
+	dbCfg.messageColl = dbCfg.mongoClient.Database("sckt").Collection("message")
 }

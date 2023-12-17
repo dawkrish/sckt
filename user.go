@@ -41,3 +41,13 @@ func getAllUsers(){
 	}
 	log.Println(users[0]["name"])
 }
+
+func deleteAllUsers(){
+	result,err := dbCfg.userColl.DeleteMany(context.TODO(),bson.M{})
+	if err != nil {
+		log.Println("error in deleting users : ",err)
+	}
+	log.Println("Documents delete : ",result.DeletedCount)
+
+}
+
