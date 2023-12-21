@@ -9,16 +9,18 @@ import (
 )
 
 type User struct{
-	Name string `bson:"name"`
+	DisplayName string `bson:"display_name"`
+	UserName string `bson:"user_name"`
 	Email string `bson:"email"`
 	Password string `bson:"password"`
 	CreatedAt time.Time `bson:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at"`
 }
 
-func createUser(name, email , password string){
+func createUser(userName,displayName, email , password string){
 	user := User{
-		Name : name,
+		UserName : userName,
+		DisplayName: displayName,
 		Email: email,
 		Password: password,
 		CreatedAt: time.Now(),
@@ -28,6 +30,10 @@ func createUser(name, email , password string){
 	if err != nil {
 		log.Println("error while creating user: ",err)
 	}
+}
+
+func getUserByUserName(username string){
+	cursor, err := dbCfg.userColl.Find()
 }
 
 func getAllUsers(){

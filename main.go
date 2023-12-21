@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -40,10 +39,13 @@ func main() {
 	// createUser("anant","d@d.com", "root")
 	// getAllUsers()
 	// deleteAllUsers()
-	createRoom(3478)
-	r := mux.NewRouter()
+	// createRoom(3478)
+	r := http.NewServeMux()	
+	fs := http.FileServer(http.Dir("./static"))
 
-	r.HandleFunc("/", homeHandler)
+	r.Handle("/static/",http.StripPrefix("/static/",fs))
+	r.HandleFunc("/login",loginHandler)
+
 	r.HandleFunc("/ws", wsHandler)
 
 	log.Println("listening on http://localhost:8080")
