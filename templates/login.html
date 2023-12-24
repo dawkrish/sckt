@@ -1,23 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="stylesheet" href="../static/stylesheets/home.css">
-</head>
-<body>
-    <h3>Login Page</h3>
-    <form action="" method="post">
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username">
-        <label for="password">Password</label>
-        <input type="text" id="password" name="password">
-    <button onclick="">Submit</button>
-    </form>
 
-    <script>
-        
-    </script>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <link rel="stylesheet" href="../static/stylesheets/home.css">
+</head>
+
+<body>
+  <h3>Login Page</h3>
+  <p>{{.Emsg}}</p>
+  <form action="" method="post">
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username">
+    <label for="password">Password</label>
+    <input type="text" id="password" name="password">
+    <button onclick="">Submit</button>
+  </form>
+
+  <script>
+
+  </script>
 </body>
+
 </html>
