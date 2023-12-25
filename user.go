@@ -9,6 +9,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type User struct {
@@ -21,15 +22,19 @@ type User struct {
 }
 
 func createUser(userName, displayName, email, password string) {
+	hashedPassword , err := bcrypt.GenerateFromPassword([]byte(password),10)
+	if err != nil {
+		log.Println("err in hashing password ",err)
+	}
 	user := User{
 		UserName:    userName,
 		DisplayName: displayName,
 		Email:       email,
-		Password:    password,
+		Password:    string(hashedPassword),
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	_, err := dbCfg.userColl.InsertOne(context.TODO(), user)
+	_, err = dbCfg.userColl.InsertOne(context.TODO(), user)
 	if err != nil {
 		log.Println("error while creating user: ", err)
 	}
@@ -48,6 +53,8 @@ func getUserByUserName(username string) (User, error) {
 	return user, nil
 
 }
+
+
 
 func getAllUsers() {
 	cursor, err := dbCfg.userColl.Find(context.TODO(), bson.M{})

@@ -39,8 +39,8 @@ func main() {
 	createAllTemplates()
 	conncectToDB()
 	defer dbCfg.mongoClient.Disconnect(context.TODO())
-	//createUser("vansh","Vansh Aggarwal","c@c.com", "root")
-	//createUser("anant","Anant Gupta","d@d.com", "root")
+	// createUser("vansh","Vansh Aggarwal","c@c.com", "root")
+	// createUser("anant","Anant Gupta","d@d.com", "root")
 	// getAllUsers()
 	// deleteAllUsers()
 	// createRoom(3478)
@@ -49,6 +49,7 @@ func main() {
 
 	r.Handle("/static/", http.StripPrefix("/static/", fs))
 	r.HandleFunc("/login", loginHandler)
+	r.HandleFunc("/",homeHandler)
 
 	r.HandleFunc("/ws", wsHandler)
 

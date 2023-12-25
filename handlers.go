@@ -4,8 +4,11 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+
+	"golang.org/x/crypto/bcrypt"
 	// "github.com/gorilla/websocket"
 	// "encoding/json"
+	// "github.com/golang-jwt/jwt"
 )
 
 type errToSend struct {
@@ -40,6 +43,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
+	// first check if there is a user logged in or not, if not then then send to login page or else display home page
+	// isUserLoggedIn := 
 	t, _ := template.ParseFiles("templates/home.html")
 	type dataToSend struct {
 		Title string
@@ -57,26 +62,31 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		username := r.FormValue("username")
 		password := r.FormValue("password")
-		log.Println(username, password)
 		user, err := getUserByUserName(username)
-		if err != nil {
+		
+		isCorrectPassword := bcrypt.CompareHashAndPassword([]byte(user.Password),[]byte(password))
+
+		if err != nil || isCorrectPassword != nil {
 			e := errToSend{
-				Emsg: "user not found",
-			}
-			// tmplCfg.login.Execute(w, e)
-			t, _ := template.ParseFiles("./templates/login.html")
-			t.Execute(w, e)
-			return
-		}
-		// check whether password is correct or not
-		if user.Password != password {
-			e := errToSend{
-				Emsg: "incorrect password",
+				Emsg: "invalid credentials",
 			}
 			tmplCfg.login.Execute(w, e)
 			return
 		}
-		tmplCfg.login.Execute(w, nil)
+		// create a jwt and assign it to a cookie....
+
+		tokenString,err :=generateJwt(username)
+		if err != nil {
+			e := errToSend{
+				Emsg: err.Error(),
+			}
+			tmplCfg.login.Execute(w,e)
+		}
+		http.SetCookie(w,&http.Cookie{
+			Name: "jwt",
+			Value: tokenString,
+		})
+		http.Redirect(w,r,"/",http.StatusSeeOther)
 	}
 }
 func broadcast(room Room, mt int, msg []byte) {
@@ -84,3 +94,4 @@ func broadcast(room Room, mt int, msg []byte) {
 	// 	con.WriteMessage(mt, []byte(msg))
 	// }
 }
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDM1MzAxNDcsInN1YiI6InZhbnNoIn0.JtqUL71NhyGuDKAtKK_I9zFYkcb3_-sCZmdSYYtFy2k
