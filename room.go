@@ -15,7 +15,7 @@ type Room struct{
 }
 
 
-func createRoom(code int){
+func (db *databaseConfig)createRoom(code int){
 	room := Room{
 		Code: code,
 		Messages: []Message{},
@@ -24,7 +24,7 @@ func createRoom(code int){
 		UpdatedAt: time.Now(),
 	}
 
-	_,err := dbCfg.roomColl.InsertOne(context.TODO(),room)
+	_,err := db.roomColl.InsertOne(context.TODO(),room)
 	if err != nil {
 		log.Println("error creating room : ",err)
 	}

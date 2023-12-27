@@ -21,7 +21,7 @@ type User struct {
 	UpdatedAt   time.Time `bson:"updated_at"`
 }
 
-func createUser(userName, displayName, email, password string) {
+func (db *databaseConfig)createUser(userName, displayName, email, password string) {
 	hashedPassword , err := bcrypt.GenerateFromPassword([]byte(password),10)
 	if err != nil {
 		log.Println("err in hashing password ",err)
@@ -34,16 +34,16 @@ func createUser(userName, displayName, email, password string) {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	_, err = dbCfg.userColl.InsertOne(context.TODO(), user)
+	_, err = db.userColl.InsertOne(context.TODO(), user)
 	if err != nil {
 		log.Println("error while creating user: ", err)
 	}
 }
 
-func getUserByUserName(username string) (User, error) {
+func (db *databaseConfig)getUserByUserName(username string) (User, error) {
 	filter := bson.D{{"user_name", username}}
 	var user User
-	result := dbCfg.userColl.FindOne(context.TODO(), filter).Decode(&user)
+	result := db.userColl.FindOne(context.TODO(), filter).Decode(&user)
 	if result != nil {
 		if result == mongo.ErrNoDocuments {
 			log.Println("user not found")
@@ -56,8 +56,8 @@ func getUserByUserName(username string) (User, error) {
 
 
 
-func getAllUsers() {
-	cursor, err := dbCfg.userColl.Find(context.TODO(), bson.M{})
+func (db *databaseConfig)getAllUsers() {
+	cursor, err := db.userColl.Find(context.TODO(), bson.M{})
 	if err != nil {
 		log.Println("error in finding users", err)
 	}
@@ -71,8 +71,8 @@ func getAllUsers() {
 	}
 }
 
-func deleteAllUsers() {
-	result, err := dbCfg.userColl.DeleteMany(context.TODO(), bson.M{})
+func (db *databaseConfig)deleteAllUsers() {
+	result, err := db.userColl.DeleteMany(context.TODO(), bson.M{})
 	if err != nil {
 		log.Println("error in deleting users : ", err)
 	}

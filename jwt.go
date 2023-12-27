@@ -1,30 +1,32 @@
 package main
+
 import (
+	"errors"
 	"time"
-	"log"
-	"os"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/joho/godotenv"
 )
 
-var JWT_SECRET_KEY string
-func init(){
-		if err := godotenv.Load(); err != nil {
-		log.Fatal("No .env file found")
-	}
-	JWT_SECRET_KEY = os.Getenv("JWT_SECRET_KEY")
-	if JWT_SECRET_KEY == "" {
-		log.Fatal("MONGO_URI not set")
-	}
-}
-
-func generateJwt(username string) (string, error) {
+func (cfg *Config)generateJwt(username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,jwt.StandardClaims{
 		ExpiresAt: time.Now().Add(10 * time.Second).Unix(),
 		Subject: username,
 	})
-	log.Println(JWT_SECRET_KEY)
-	tokenString, err := token.SignedString([]byte(JWT_SECRET_KEY))
+	tokenString, err := token.SignedString(cfg.JWT_SECRET)
 	return tokenString, err
+}
+
+func (cfg *Config)validateJwt(tokenString string) (string,error) {
+	customClaims := jwt.StandardClaims{}
+	token, err := jwt.ParseWithClaims(tokenString,&customClaims,func (t *jwt.Token) (interface{}, error) {
+		return cfg.JWT_SECRET, nil
+	})
+	if err != nil {
+		return "",errors.New("error parsing token : " + err.Error())
+	}
+	if !token.Valid {
+		return "",errors.New("error token not valid : " + err.Error())
+	}
+	username := customClaims.Subject	
+	return username,nil
 }
