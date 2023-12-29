@@ -3,9 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/stylesheets/home.css">
     <title>Home</title>
 </head>
 <body>
+    <p id="flash-message" class="{{.Color}}">{{.Msg}}</p>
     <h1>Welcome to home page</h1>
+
+    <form action="">
+        <!-- <input type="text" name=""> -->
+    </form>
+
+    <script>
+        const flashMessage = document.getElementById("flash-message")
+    </script>
 </body>
 </html>

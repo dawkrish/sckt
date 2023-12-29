@@ -10,12 +10,12 @@
 
 <body>
   <h3>Login Page</h3>
-  <p>{{.Emsg}}</p>
+  <p id="flash-message" class="{{.Color}}">{{.Msg}}</p>
   <form action="" method="post">
     <label for="username">Username</label>
     <input type="text" id="username" name="username">
     <label for="password">Password</label>
-    <input type="text" id="password" name="password">
+    <input type="password" id="password" name="password">
     <button onclick="">Submit</button>
   </form>
 

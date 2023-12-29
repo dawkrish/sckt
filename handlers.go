@@ -11,9 +11,11 @@ import (
 	// "github.com/golang-jwt/jwt"
 )
 
-type errToSend struct {
-	Emsg string
+type flashMsg struct {
+	Msg string
+	Color string
 }
+
 
 func (cfg *Config)wsHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("websocket connection established...")
@@ -51,23 +53,35 @@ func (cfg *Config)homeHandler(w http.ResponseWriter, r *http.Request) {
 	username,err := cfg.validateJwt(cookie.Value) 	
 	if err != nil {
 		log.Println(err.Error())
-		return
+		removeCookie(w,"jwt")
+		http.SetCookie(w,&http.Cookie{
+			Name: "message",
+			Value: "you are logged out",
+		})
+		http.Redirect(w,r,"/login",http.StatusSeeOther)
 	}
-	log.Println("user is logged in ",username)
-
-	type dataToSend struct {
-		Title string
-	}
-	d := dataToSend{
-		Title:username, 
-	}
+	removeCookie(w,"message")
+	
+	d := flashMsg{
+		Msg: username + " is logged in",
+		Color: "success",
+	}	
 	cfg.tmpl.home.Execute(w,d)
 }
 func (cfg *Config)loginHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
+		cookie, err := r.Cookie("message")
+		if err != nil {
+			log.Println("error message cookie not found : " + err.Error())
+		}
+		log.Println("cookie value : ",cookie.Value)
+		e := flashMsg{
+			Msg : cookie.Value,
+			Color: "failure",
+		}
 		t, _ := template.ParseFiles("templates/login.html")
-		t.Execute(w, nil)
+		t.Execute(w, e)
 	case "POST":
 		username := r.FormValue("username")
 		password := r.FormValue("password")
@@ -76,18 +90,19 @@ func (cfg *Config)loginHandler(w http.ResponseWriter, r *http.Request) {
 		isCorrectPassword := bcrypt.CompareHashAndPassword([]byte(user.Password),[]byte(password))
 
 		if err != nil || isCorrectPassword != nil {
-			e := errToSend{
-				Emsg: "invalid credentials",
+			e := flashMsg{
+				Msg: "invalid credentials",
+				Color : "failure",
 			}
 			cfg.tmpl.login.Execute(w, e)
 			return
 		}
-		// create a jwt and assign it to a cookie....
 
 		tokenString,err := cfg.generateJwt(username)
 		if err != nil {
-			e := errToSend{
-				Emsg: err.Error(),
+			e := flashMsg{
+				Msg: err.Error(),
+				Color : "failure",
 			}
 			cfg.tmpl.login.Execute(w,e)
 		}
@@ -103,3 +118,11 @@ func (cfg *Config)loginHandler(w http.ResponseWriter, r *http.Request) {
 // 	// 	con.WriteMessage(mt, []byte(msg))
 // 	// }
 // }
+
+func removeCookie(w http.ResponseWriter, name string){
+	http.SetCookie(w,&http.Cookie{
+		Name: name,
+		Value: "",
+		MaxAge: -1,
+	})
+}
