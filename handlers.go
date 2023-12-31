@@ -113,6 +113,24 @@ func (cfg *Config)loginHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w,r,"/",http.StatusSeeOther)
 	}
 }
+
+func (cfg *Config) joinRoomHandler(w http.ResponseWriter, r *http.Request){
+	switch r.Method{
+	case "POST" : 
+		// check if this room exists
+		// if yes then add this member to the room
+	}
+}
+
+func (cfg *Config) createRoomHandler(w http.ResponseWriter, r *http.Request){
+	switch r.Method{
+	case "POST":
+		// create the room and add the user into it
+	}
+
+}
+
+
 // func broadcast(room Room, mt int, msg []byte) {
 // 	// for _,con := range room.ClientList{
 // 	// 	con.WriteMessage(mt, []byte(msg))
