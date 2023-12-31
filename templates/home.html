@@ -9,9 +9,18 @@
 <body>
     <p id="flash-message" class="{{.Color}}">{{.Msg}}</p>
     <h1>Welcome to home page</h1>
+    <br>
+    <form action="/room/create" method="post">
+        <label for="roomName">Room Name</label>
+        <input type="text" name="roomName">
+        <button>Create Room</button>
+    </form>
+    <br>
 
-    <form action="">
-        <!-- <input type="text" name=""> -->
+    <form action="/room/join" method="post">
+        <label for="roomCode">Room Code</label>
+        <input type="text" name="roomCode">
+        <button>Join Room</button>
     </form>
 
     <script>
