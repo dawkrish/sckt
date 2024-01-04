@@ -14,15 +14,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type Config struct{
-	db *databaseConfig
-	tmpl *templateConfig
-	upgrader websocket.Upgrader
+type Config struct {
+	db         *databaseConfig
+	tmpl       *templateConfig
+	upgrader   websocket.Upgrader
 	JWT_SECRET []byte
 }
 
-type templateConfig  struct {
-	home *template.Template
+type templateConfig struct {
+	home  *template.Template
 	login *template.Template
 }
 type databaseConfig struct {
@@ -38,13 +38,11 @@ type ClientRoom struct {
 	ClientList []*websocket.Conn
 }
 
-var cfg Config
-
 func main() {
-	cfg , err := initalizeCfg()
+	cfg, err := initalizeCfg()
 	if err != nil {
 		log.Fatal("error initalizing cfg : " + err.Error())
-	} 
+	}
 	defer cfg.db.mongoClient.Disconnect(context.TODO())
 
 	r := http.NewServeMux()
@@ -52,7 +50,9 @@ func main() {
 
 	r.Handle("/static/", http.StripPrefix("/static/", fs))
 	r.HandleFunc("/login", cfg.loginHandler)
-	r.HandleFunc("/",cfg.homeHandler)
+	r.HandleFunc("/", cfg.homeHandler)
+	r.HandleFunc("/room/create", cfg.createRoomHandler)
+	r.HandleFunc("/room/join", cfg.joinRoomHandler)
 
 	r.HandleFunc("/ws", cfg.wsHandler)
 
@@ -60,53 +60,57 @@ func main() {
 	http.ListenAndServe("localhost:8080", r)
 }
 
-
-func initalizeCfg() (Config, error){
+func initalizeCfg() (Config, error) {
 	homeTemplate, err := template.ParseFiles("./templates/home.html")
 	if err != nil {
-		return Config{},errors.New("error parsing home.html : " + err.Error())
+		return Config{
+			db:         &databaseConfig{},
+			tmpl:       &templateConfig{},
+			upgrader:   websocket.Upgrader{},
+			JWT_SECRET: []byte{},
+		}, errors.New("error parsing home.html : " + err.Error())
 	}
 	loginTemplate, err := template.ParseFiles("./templates/login.html")
 	if err != nil {
-		return Config{},errors.New("error parsing login.html : " + err.Error())
+		return Config{}, errors.New("error parsing login.html : " + err.Error())
 	}
 	tmpl := templateConfig{
-		home : homeTemplate,
+		home:  homeTemplate,
 		login: loginTemplate,
-	}	
+	}
 	upgrader := websocket.Upgrader{
-		ReadBufferSize: 1024,
+		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
-	if err = godotenv.Load(); err != nil{
-		return Config{},errors.New("error .env file not found : "+ err.Error())
+	if err = godotenv.Load(); err != nil {
+		return Config{}, errors.New("error .env file not found : " + err.Error())
 	}
 	JWT_SECRET := os.Getenv("JWT_SECRET")
-	if JWT_SECRET == ""{
-		return Config{}, errors.New("error JWT_SECRET not found in .env : " + err.Error())
+	if JWT_SECRET == "" {
+		// return Config{}, errors.New("error JWT_SECRET not found in .env : " + err.Error())
 	}
 	MONGO_URI := os.Getenv("MONGO_URI")
 	if MONGO_URI == "" {
 		return Config{}, errors.New("error MONGO_URI not found in .env : " + err.Error())
 	}
 
-	mongoClient , err := mongo.Connect(context.TODO(),options.Client().ApplyURI(MONGO_URI))
+	mongoClient, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(MONGO_URI))
 	if err != nil {
 		return Config{}, errors.New("error could not connect to mongoDB : " + err.Error())
 	}
 
 	dbCfg := databaseConfig{
 		mongoClient: mongoClient,
-		userColl: mongoClient.Database("sckt").Collection("user"),
-		roomColl: mongoClient.Database("sckt").Collection("room"),
+		userColl:    mongoClient.Database("sckt").Collection("user"),
+		roomColl:    mongoClient.Database("sckt").Collection("room"),
 		messageColl: mongoClient.Database("sckt").Collection("message"),
 	}
-	
+
 	cfg := Config{
-		db : &dbCfg,
-		tmpl: &tmpl,
-		upgrader: upgrader,
+		db:         &dbCfg,
+		tmpl:       &tmpl,
+		upgrader:   upgrader,
 		JWT_SECRET: []byte(JWT_SECRET),
 	}
-	return cfg,nil
+	return cfg, nil
 }

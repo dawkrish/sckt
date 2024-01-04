@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -41,10 +42,8 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *Config) homeHandler(w http.ResponseWriter, r *http.Request) {
-	// first check if there is a user logged in or not, if not then then send to login page or else display home page
 	cookie, err := r.Cookie("jwt")
 	if err != nil {
-		log.Println("error jwt-cookie not found : " + err.Error())
 		http.SetCookie(w, &http.Cookie{
 			Name:  "message",
 			Value: "you are logged out",
@@ -52,11 +51,8 @@ func (cfg *Config) homeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-
 	username, err := cfg.validateJwt(cookie.Value)
 	if err != nil {
-		log.Println(err.Error())
-		removeCookie(w, "jwt")
 		http.SetCookie(w, &http.Cookie{
 			Name:  "message",
 			Value: "you are logged out",
@@ -64,12 +60,23 @@ func (cfg *Config) homeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	removeCookie(w, "message")
+	// at this stage user is logged in, check for any messages cookie, if not found then render username is loggin
+	var d flashMsg
 
-	d := flashMsg{
-		Msg:   username + " is logged in",
-		Color: "success",
+	msgCookie, err := r.Cookie("message")
+	log.Println(msgCookie)
+	if err != nil || msgCookie.Value == "" {
+		d = flashMsg{
+			Msg:   username + " is logged in",
+			Color: "success",
+		}
+	} else {
+		d = flashMsg{
+			Msg:   msgCookie.Value,
+			Color: "failure",
+		}
 	}
+
 	cfg.tmpl.home.Execute(w, d)
 }
 func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -77,14 +84,12 @@ func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		cookie, err := r.Cookie("message")
 		if err != nil {
-			log.Println("error message-cookie not found : " + err.Error())
-			w.Write([]byte("bad day"))
+			cfg.tmpl.login.Execute(w, nil)
 		} else {
 			e := flashMsg{
 				Msg:   cookie.Value,
 				Color: "failure",
 			}
-			// log.Println("cfg.tmpl.login value : ", cfg.tmpl.login)
 			cfg.tmpl.login.Execute(w, e)
 		}
 	case "POST":
@@ -114,8 +119,9 @@ func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
 			Name:    "jwt",
 			Value:   tokenString,
-			Expires: time.Now().Add(time.Minute * 1),
+			Expires: time.Now().Add(time.Minute * 2),
 		})
+		removeCookie(w, "message")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
@@ -123,8 +129,22 @@ func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
 func (cfg *Config) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
-		// check if this room exists
-		// if yes then add this member to the room
+		roomCodeString := r.FormValue("roomCode")
+		if roomCodeString == "" {
+			log.Println("roomCode was empty")
+			setCookie(w, "message", "roomCode field empty")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+		roomCodeNumerical, _ := strconv.Atoi(roomCodeString)
+
+		_, err := cfg.db.getRoomByCode(roomCodeNumerical)
+		if err != nil {
+			log.Println("roomCode is not correct")
+			setCookie(w, "message", "incorrect roomCode")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
 	}
 }
 
@@ -147,5 +167,13 @@ func removeCookie(w http.ResponseWriter, name string) {
 		Name:   name,
 		Value:  "",
 		MaxAge: -1,
+	})
+}
+
+func setCookie(w http.ResponseWriter, name string, value string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:   name,
+		Value:  value,
+		Domain: "/",
 	})
 }
