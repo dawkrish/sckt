@@ -16,7 +16,7 @@ type Room struct {
 	Code      int       `bson:"code"`
 	Messages  []Message `bson:"messages"`
 	Users     []User    `bson:"users"`
-	CreatedAt time.Time`bson:"created_at"`
+	CreatedAt time.Time `bson:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at"`
 }
 
@@ -40,7 +40,7 @@ func (db *databaseConfig) getRoomByCode(code int) (Room, error) {
 	return room, nil
 }
 
-func (db *databaseConfig) createRoom(name string) {
+func (db *databaseConfig) createRoom(name string) (Room, error) {
 	room := Room{
 		Name:      name,
 		Code:      db.generateRandomRoomCode(),
@@ -53,13 +53,14 @@ func (db *databaseConfig) createRoom(name string) {
 	_, err := db.roomColl.InsertOne(context.TODO(), room)
 	if err != nil {
 		log.Println("error creating room : ", err)
+		return Room{}, err
 	}
+	return room, nil
 }
 
-func getAllRooms()  {
+func getAllRooms() {
 }
 
 func deleteAllRooms() {
 
 }
-

@@ -21,7 +21,7 @@ type User struct {
 	UpdatedAt   time.Time `bson:"updated_at"`
 }
 
-func (db *databaseConfig) createUser(userName, displayName, email, password string) {
+func (db *databaseConfig) createUser(userName, displayName, email, password string) (User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
 		log.Println("err in hashing password ", err)
@@ -37,7 +37,9 @@ func (db *databaseConfig) createUser(userName, displayName, email, password stri
 	_, err = db.userColl.InsertOne(context.TODO(), user)
 	if err != nil {
 		log.Println("error while creating user: ", err)
+		return User{}, err
 	}
+	return user, nil
 }
 
 func (db *databaseConfig) getUserByUserName(username string) (User, error) {

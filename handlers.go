@@ -44,54 +44,56 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 func (cfg *Config) homeHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("jwt")
 	if err != nil {
-		http.SetCookie(w, &http.Cookie{
-			Name:  "message",
-			Value: "you are logged out",
-		})
+		SetFlash(w, "errorMessage", "you need to login")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 	username, err := cfg.validateJwt(cookie.Value)
 	if err != nil {
-		http.SetCookie(w, &http.Cookie{
-			Name:  "message",
-			Value: "you are logged out",
-		})
+		SetFlash(w, "errorMessage", "you need to login")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	// at this stage user is logged in, check for any messages cookie, if not found then render username is loggin
 	var d flashMsg
-
-	msgCookie, err := r.Cookie("message")
-	log.Println(msgCookie)
-	if err != nil || msgCookie.Value == "" {
+	msg := GetFlash(w, r, "errorMessage")
+	if msg == "" {
 		d = flashMsg{
 			Msg:   username + " is logged in",
 			Color: "success",
 		}
 	} else {
 		d = flashMsg{
-			Msg:   msgCookie.Value,
+			Msg:   msg,
 			Color: "failure",
 		}
 	}
-
 	cfg.tmpl.home.Execute(w, d)
 }
+
+func (cfg *Config) signupHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		cfg.tmpl.signup.Execute(w, nil)
+	case "POST":
+		username := r.FormValue("username")
+		displayname := r.FormValue("displayName")
+		password := r.FormValue("password")
+	}
+}
+
 func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		cookie, err := r.Cookie("message")
-		if err != nil {
+		msg := GetFlash(w, r, "errorMessage")
+		if msg == "" {
 			cfg.tmpl.login.Execute(w, nil)
-		} else {
-			e := flashMsg{
-				Msg:   cookie.Value,
-				Color: "failure",
-			}
-			cfg.tmpl.login.Execute(w, e)
+			return
 		}
+		d := flashMsg{
+			Msg:   msg,
+			Color: "failure",
+		}
+		cfg.tmpl.login.Execute(w, d)
 	case "POST":
 		username := r.FormValue("username")
 		password := r.FormValue("password")
@@ -121,7 +123,6 @@ func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
 			Value:   tokenString,
 			Expires: time.Now().Add(time.Minute * 2),
 		})
-		removeCookie(w, "message")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 }
@@ -130,18 +131,11 @@ func (cfg *Config) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		roomCodeString := r.FormValue("roomCode")
-		if roomCodeString == "" {
-			log.Println("roomCode was empty")
-			setCookie(w, "message", "roomCode field empty")
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
 		roomCodeNumerical, _ := strconv.Atoi(roomCodeString)
 
 		_, err := cfg.db.getRoomByCode(roomCodeNumerical)
 		if err != nil {
-			log.Println("roomCode is not correct")
-			setCookie(w, "message", "incorrect roomCode")
+			SetFlash(w, "errorMessage", "room-code does not exist")
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -152,6 +146,8 @@ func (cfg *Config) createRoomHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		// create the room and add the user into it
+		roomName := r.FormValue("roomName")
+		cfg.db.createRoom(roomName)
 	}
 
 }
@@ -161,19 +157,3 @@ func (cfg *Config) createRoomHandler(w http.ResponseWriter, r *http.Request) {
 // 	// 	con.WriteMessage(mt, []byte(msg))
 // 	// }
 // }
-
-func removeCookie(w http.ResponseWriter, name string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:   name,
-		Value:  "",
-		MaxAge: -1,
-	})
-}
-
-func setCookie(w http.ResponseWriter, name string, value string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:   name,
-		Value:  value,
-		Domain: "/",
-	})
-}

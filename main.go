@@ -22,8 +22,9 @@ type Config struct {
 }
 
 type templateConfig struct {
-	home  *template.Template
-	login *template.Template
+	home   *template.Template
+	login  *template.Template
+	signup *template.Template
 }
 type databaseConfig struct {
 	mongoClient *mongo.Client
@@ -50,6 +51,7 @@ func main() {
 
 	r.Handle("/static/", http.StripPrefix("/static/", fs))
 	r.HandleFunc("/login", cfg.loginHandler)
+	r.HandleFunc("/signup", cfg.signupHandler)
 	r.HandleFunc("/", cfg.homeHandler)
 	r.HandleFunc("/room/create", cfg.createRoomHandler)
 	r.HandleFunc("/room/join", cfg.joinRoomHandler)
@@ -63,20 +65,20 @@ func main() {
 func initalizeCfg() (Config, error) {
 	homeTemplate, err := template.ParseFiles("./templates/home.html")
 	if err != nil {
-		return Config{
-			db:         &databaseConfig{},
-			tmpl:       &templateConfig{},
-			upgrader:   websocket.Upgrader{},
-			JWT_SECRET: []byte{},
-		}, errors.New("error parsing home.html : " + err.Error())
+		return Config{}, errors.New("error parsing home.html : " + err.Error())
 	}
 	loginTemplate, err := template.ParseFiles("./templates/login.html")
 	if err != nil {
 		return Config{}, errors.New("error parsing login.html : " + err.Error())
 	}
+	signupTemplate, err := template.ParseFiles("./templates/signup.html")
+	if err != nil {
+		return Config{}, errors.New("error parsing signup.html : " + err.Error())
+	}
 	tmpl := templateConfig{
-		home:  homeTemplate,
-		login: loginTemplate,
+		home:   homeTemplate,
+		login:  loginTemplate,
+		signup: signupTemplate,
 	}
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
