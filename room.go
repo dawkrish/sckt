@@ -23,8 +23,8 @@ type Room struct {
 func (db *databaseConfig) generateRandomRoomCode() int {
 	var num int
 	for {
-		num = rand.Intn(10)
-		if _, err := db.getRoomByCode(num); err == nil {
+		num = rand.Intn(10000) + 100000
+		if _, err := db.getRoomByCode(num); err != nil {
 			break
 		}
 	}
@@ -40,12 +40,12 @@ func (db *databaseConfig) getRoomByCode(code int) (Room, error) {
 	return room, nil
 }
 
-func (db *databaseConfig) createRoom(name string) (Room, error) {
+func (db *databaseConfig) createRoom(user User, name string) (Room, error) {
 	room := Room{
 		Name:      name,
 		Code:      db.generateRandomRoomCode(),
 		Messages:  []Message{},
-		Users:     []User{},
+		Users:     []User{user},
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -58,9 +58,25 @@ func (db *databaseConfig) createRoom(name string) (Room, error) {
 	return room, nil
 }
 
-func getAllRooms() {
+func (db *databaseConfig) deleteAllRooms() {
+	result, err := db.roomColl.DeleteMany(context.TODO(), bson.M{})
+	if err != nil {
+		log.Println("error in deleting rooms: ", err)
+	}
+	log.Println("Documents delete : ", result.DeletedCount)
 }
 
-func deleteAllRooms() {
+func (db *databaseConfig) getAllRooms() {
+	cursor, err := db.roomColl.Find(context.TODO(), bson.M{})
+	if err != nil {
+		log.Println("error in finding rooms : ", err.Error())
+	}
+	var rooms []bson.M
+	if err := cursor.All(context.TODO(), &rooms); err != nil {
+		log.Println("error quering rooms : ", err.Error())
+	}
 
+	for _, room := range rooms {
+		log.Println(room)
+	}
 }

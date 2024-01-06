@@ -53,6 +53,7 @@ func main() {
 	r.HandleFunc("/login", cfg.loginHandler)
 	r.HandleFunc("/signup", cfg.signupHandler)
 	r.HandleFunc("/", cfg.homeHandler)
+	r.HandleFunc("/room", cfg.roomHandler)
 	r.HandleFunc("/room/create", cfg.createRoomHandler)
 	r.HandleFunc("/room/join", cfg.joinRoomHandler)
 
@@ -89,7 +90,7 @@ func initalizeCfg() (Config, error) {
 	}
 	JWT_SECRET := os.Getenv("JWT_SECRET")
 	if JWT_SECRET == "" {
-		// return Config{}, errors.New("error JWT_SECRET not found in .env : " + err.Error())
+		return Config{}, errors.New("error JWT_SECRET not found in .env : " + err.Error())
 	}
 	MONGO_URI := os.Getenv("MONGO_URI")
 	if MONGO_URI == "" {

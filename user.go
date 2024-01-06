@@ -21,8 +21,8 @@ type User struct {
 	UpdatedAt   time.Time `bson:"updated_at"`
 }
 
-func (db *databaseConfig) createUser(userName, displayName, email, password string) (User, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
+func (db *databaseConfig) createUser(userName, displayName, email, plainPassword string) (User, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(plainPassword), 10)
 	if err != nil {
 		log.Println("err in hashing password ", err)
 	}
@@ -47,11 +47,20 @@ func (db *databaseConfig) getUserByUserName(username string) (User, error) {
 	var user User
 	result := db.userColl.FindOne(context.TODO(), filter).Decode(&user)
 	if result == mongo.ErrNoDocuments {
-		log.Println("user not found")
-		return User{}, errors.New("user not found")
+		return User{}, errors.New("username does not exists")
 	}
 	return user, nil
 
+}
+
+func (db *databaseConfig) getUserByEmail(email string) (User, error) {
+	filter := bson.D{{Key: "email", Value: email}}
+	var user User
+	result := db.userColl.FindOne(context.TODO(), filter).Decode(&user)
+	if result == mongo.ErrNoDocuments {
+		return User{}, errors.New("email does not exists")
+	}
+	return user, nil
 }
 
 func (db *databaseConfig) getAllUsers() {

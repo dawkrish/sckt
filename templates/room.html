@@ -1,17 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="../static/stylesheets/home.css">
-  <title>Home</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rooms</title>
 </head>
-
-<body>
-  <p id="flash-message" class="{{.Color}}">{{.Msg}}</p>
-  <h1>Welcome to home page</h1>
-  <br>
+<body>    
   <form action="/room/create" method="post">
     <label for="roomName">Room Name</label>
     <input type="text" name="roomName" required>
@@ -23,10 +17,5 @@
     <input type="text" name="roomCode" required>
     <button>Join Room</button>
   </form>
-
-  <script>
-    const flashMessage = document.getElementById("flash-message")
-  </script>
 </body>
-
 </html>

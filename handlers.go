@@ -67,6 +67,9 @@ func (cfg *Config) homeHandler(w http.ResponseWriter, r *http.Request) {
 			Color: "failure",
 		}
 	}
+
+	// fetch all rooms for that user and send them to tmpl
+
 	cfg.tmpl.home.Execute(w, d)
 }
 
@@ -77,10 +80,35 @@ func (cfg *Config) signupHandler(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		username := r.FormValue("username")
 		displayname := r.FormValue("displayName")
+		email := r.FormValue("email")
 		password := r.FormValue("password")
+
+		_, ifUsernameExists := cfg.db.getUserByUserName(username)
+		if ifUsernameExists == nil {
+			d := flashMsg{
+				Msg:   "username already exists",
+				Color: "failure",
+			}
+			cfg.tmpl.signup.Execute(w, d)
+			return
+		}
+		_, ifEmailExists := cfg.db.getUserByEmail(email)
+		if ifEmailExists == nil {
+			d := flashMsg{
+				Msg:   "email already exists",
+				Color: "failure",
+			}
+			cfg.tmpl.signup.Execute(w, d)
+			return
+		}
+		newUser, err := cfg.db.createUser(username, displayname, email, password)
+		if err != nil {
+			log.Println("error creating new user : " + err.Error())
+		}
+		log.Println(newUser)
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 }
-
 func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
@@ -146,10 +174,34 @@ func (cfg *Config) createRoomHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		// create the room and add the user into it
+		cookie, err := r.Cookie("jwt")
+		if err != nil {
+			SetFlash(w, "errorMessage", "you need to login")
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+		username, err := cfg.validateJwt(cookie.Value)
+		if err != nil {
+			SetFlash(w, "errorMessage", "you need to login")
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
 		roomName := r.FormValue("roomName")
-		cfg.db.createRoom(roomName)
+		user, err := cfg.db.getUserByUserName(username)
+		room, err := cfg.db.createRoom(user, roomName)
+		if err != nil {
+			log.Println("error creating room : " + err.Error())
+		}
+		log.Println("room created : ", room)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
+}
 
+func (cfg *Config) roomHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		// get all rooms for that user and display them
+	}
 }
 
 // func broadcast(room Room, mt int, msg []byte) {

@@ -1,11 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
 
-body{
-    background-color: #1c1c1c;
-    color : whitesmoke;
+body {
+  background-color: #1c1c1c;
+  color: whitesmoke;
+  font-family: 'Montserrat', sans-serif;
 }
-.success{
-    color: green;
+
+.success {
+  color: green;
 }
-.failure{
-    color: red;
+
+.failure {
+  color: red;
 }
