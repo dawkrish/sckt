@@ -80,3 +80,7 @@ func (db *databaseConfig) getAllRooms() {
 		log.Println(room)
 	}
 }
+
+func printRooms() {
+	log.Println("printing rooms...")
+}
