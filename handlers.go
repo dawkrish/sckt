@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -54,154 +55,149 @@ func (cfg *Config) homeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	var d flashMsg
+	var data struct {
+		Msg   string
+		Color string
+		Rooms []Room
+	}
 	msg := GetFlash(w, r, "errorMessage")
 	if msg == "" {
-		d = flashMsg{
-			Msg:   username + " is logged in",
-			Color: "success",
-		}
+		data.Msg = username + " is logged in"
+		data.Color = "success"
 	} else {
-		d = flashMsg{
-			Msg:   msg,
-			Color: "failure",
-		}
+		data.Msg = msg
+		data.Color = "failure"
 	}
+	rooms, _ := cfg.db.getAllRooms(username)
+	data.Rooms = rooms
 
-	// fetch all rooms for that user and send them to tmpl
+	cfg.tmpl.home.Execute(w, data)
 
-	cfg.tmpl.home.Execute(w, d)
 }
 
-func (cfg *Config) signupHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		cfg.tmpl.signup.Execute(w, nil)
-	case "POST":
-		username := r.FormValue("username")
-		displayname := r.FormValue("displayName")
-		email := r.FormValue("email")
-		password := r.FormValue("password")
-
-		_, ifUsernameExists := cfg.db.getUserByUserName(username)
-		if ifUsernameExists == nil {
-			d := flashMsg{
-				Msg:   "username already exists",
-				Color: "failure",
-			}
-			cfg.tmpl.signup.Execute(w, d)
-			return
-		}
-		_, ifEmailExists := cfg.db.getUserByEmail(email)
-		if ifEmailExists == nil {
-			d := flashMsg{
-				Msg:   "email already exists",
-				Color: "failure",
-			}
-			cfg.tmpl.signup.Execute(w, d)
-			return
-		}
-		newUser, err := cfg.db.createUser(username, displayname, email, password)
-		if err != nil {
-			log.Println("error creating new user : " + err.Error())
-		}
-		log.Println(newUser)
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-	}
+func (cfg *Config) GetSignupHandler(w http.ResponseWriter, r *http.Request) {
+	cfg.tmpl.signup.Execute(w, nil)
 }
-func (cfg *Config) loginHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		msg := GetFlash(w, r, "errorMessage")
-		if msg == "" {
-			cfg.tmpl.login.Execute(w, nil)
-			return
-		}
+
+func (cfg *Config) PostSignupHandler(w http.ResponseWriter, r *http.Request) {
+	username := r.FormValue("username")
+	displayname := r.FormValue("displayName")
+	email := r.FormValue("email")
+	password := r.FormValue("password")
+
+	_, ifUsernameExists := cfg.db.getUserByUserName(username)
+	if ifUsernameExists == nil {
 		d := flashMsg{
-			Msg:   msg,
+			Msg:   "username already exists",
 			Color: "failure",
 		}
-		cfg.tmpl.login.Execute(w, d)
-	case "POST":
-		username := r.FormValue("username")
-		password := r.FormValue("password")
-		user, err := cfg.db.getUserByUserName(username)
-
-		isCorrectPassword := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-
-		if err != nil || isCorrectPassword != nil {
-			e := flashMsg{
-				Msg:   "invalid credentials",
-				Color: "failure",
-			}
-			cfg.tmpl.login.Execute(w, e)
-			return
-		}
-
-		tokenString, err := cfg.generateJwt(username)
-		if err != nil {
-			e := flashMsg{
-				Msg:   err.Error(),
-				Color: "failure",
-			}
-			cfg.tmpl.login.Execute(w, e)
-		}
-		http.SetCookie(w, &http.Cookie{
-			Name:    "jwt",
-			Value:   tokenString,
-			Expires: time.Now().Add(time.Minute * 2),
-		})
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		cfg.tmpl.signup.Execute(w, d)
+		return
 	}
+	_, ifEmailExists := cfg.db.getUserByEmail(email)
+	if ifEmailExists == nil {
+		d := flashMsg{
+			Msg:   "email already exists",
+			Color: "failure",
+		}
+		cfg.tmpl.signup.Execute(w, d)
+		return
+	}
+	newUser, err := cfg.db.createUser(username, displayname, email, password)
+	if err != nil {
+		log.Println("error creating new user : " + err.Error())
+	}
+	log.Println(newUser)
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+func (cfg *Config) GetLoginHandler(w http.ResponseWriter, r *http.Request) {
+	msg := GetFlash(w, r, "errorMessage")
+	if msg == "" {
+		cfg.tmpl.login.Execute(w, nil)
+		return
+	}
+	d := flashMsg{
+		Msg:   msg,
+		Color: "failure",
+	}
+	cfg.tmpl.login.Execute(w, d)
+
+}
+func (cfg *Config) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+	user, err := cfg.db.getUserByUserName(username)
+
+	isCorrectPassword := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+
+	if err != nil || isCorrectPassword != nil {
+		e := flashMsg{
+			Msg:   "invalid credentials",
+			Color: "failure",
+		}
+		cfg.tmpl.login.Execute(w, e)
+		return
+	}
+
+	tokenString, err := cfg.generateJwt(username)
+	if err != nil {
+		e := flashMsg{
+			Msg:   err.Error(),
+			Color: "failure",
+		}
+		cfg.tmpl.login.Execute(w, e)
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:    "jwt",
+		Value:   tokenString,
+		Expires: time.Now().Add(time.Minute * 2),
+	})
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (cfg *Config) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "POST":
-		roomCodeString := r.FormValue("roomCode")
-		roomCodeNumerical, _ := strconv.Atoi(roomCodeString)
+	roomCodeString := r.FormValue("roomCode")
+	roomCodeNumerical, _ := strconv.Atoi(roomCodeString)
 
-		_, err := cfg.db.getRoomByCode(roomCodeNumerical)
-		if err != nil {
-			SetFlash(w, "errorMessage", "room-code does not exist")
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
-		}
+	_, err := cfg.db.getRoomByCode(roomCodeNumerical)
+	if err != nil {
+		SetFlash(w, "errorMessage", "room-code does not exist")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
 	}
 }
 
 func (cfg *Config) createRoomHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "POST":
-		// create the room and add the user into it
-		cookie, err := r.Cookie("jwt")
-		if err != nil {
-			SetFlash(w, "errorMessage", "you need to login")
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-		username, err := cfg.validateJwt(cookie.Value)
-		if err != nil {
-			SetFlash(w, "errorMessage", "you need to login")
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-		roomName := r.FormValue("roomName")
-		user, err := cfg.db.getUserByUserName(username)
-		room, err := cfg.db.createRoom(user, roomName)
-		if err != nil {
-			log.Println("error creating room : " + err.Error())
-		}
-		log.Println("room created : ", room)
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+	cookie, err := r.Cookie("jwt")
+	if err != nil {
+		SetFlash(w, "errorMessage", "you need to login")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
 	}
+	username, err := cfg.validateJwt(cookie.Value)
+	if err != nil {
+		SetFlash(w, "errorMessage", "you need to login")
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+	roomName := r.FormValue("roomName")
+	user, err := cfg.db.getUserByUserName(username)
+	room, err := cfg.db.createRoom(user, roomName)
+	if err != nil {
+		log.Println("error creating room : " + err.Error())
+	}
+	log.Println("room created : ", room)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func (cfg *Config) roomHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		// get all rooms for that user and display them
+func (cfg *Config) chatHandler(w http.ResponseWriter, r *http.Request) {
+	code, _ := strconv.Atoi(chi.URLParam(r, "id"))
+
+	var data struct {
+		Code int
 	}
+	data.Code = code
+	cfg.tmpl.chat.Execute(w, data)
 }
 
 // func broadcast(room Room, mt int, msg []byte) {

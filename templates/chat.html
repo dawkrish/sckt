@@ -1,22 +1,24 @@
-
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}}</title>
-    <style>
-        body{
-            background-color: #FAEED1;
-        }
-        .message{
-            color: #1B4242;
-        }
-    </style>
-</head>
-<body>
-    <p>Welcome to chat page</p>
 
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Page</title>
+  <style>
+    body {
+      background-color: #FAEED1;
+    }
+
+    .message {
+      color: #1B4242;
+    }
+  </style>
+</head>
+
+<body>
+  <p>Welcome to chat page</p>
+  <h3> This is room {{.Code}} </p>
     <input type="text" id="input-text">
     <button id="send-btn">send</button>
     <br>
@@ -25,28 +27,29 @@
     </div>
 
     <script>
-        console.log("is console log working ?")
+      console.log("is console log working ?")
 
-        const inputText = document.getElementById('input-text')
-        const sendButton = document.getElementById('send-btn')
-        const messageList = document.getElementById('message-list')
-        
-        sendButton.addEventListener('click',()=>{
-            socket.send(inputText.value)
-        })
+      const inputText = document.getElementById('input-text')
+      const sendButton = document.getElementById('send-btn')
+      const messageList = document.getElementById('message-list')
 
-        const socket = new WebSocket("ws://localhost:8080/ws")
-        console.log(socket)
-        socket.onopen = (e) =>{
-            socket.send("the connection has opened")
-        }
-        socket.onmessage = (e) => {
-            // const msgTag = document.createElement('p')
-            // msgTag.innerHTML = e.data
-            // msgTag.classList.add('message')
-            // messageList.appendChild(msgTag)
-            messageList.innerHTML += `<p class="message">${e.data}</p>`
-        }
+      sendButton.addEventListener('click', () => {
+        socket.send(inputText.value)
+      })
+
+      const socket = new WebSocket("ws://localhost:8080/ws")
+      console.log(socket)
+      socket.onopen = (e) => {
+        socket.send("the connection has opened")
+      }
+      socket.onmessage = (e) => {
+        // const msgTag = document.createElement('p')
+        // msgTag.innerHTML = e.data
+        // msgTag.classList.add('message')
+        // messageList.appendChild(msgTag)
+        messageList.innerHTML += `<p class="message">${e.data}</p>`
+      }
     </script>
 </body>
+
 </html>

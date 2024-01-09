@@ -66,21 +66,19 @@ func (db *databaseConfig) deleteAllRooms() {
 	log.Println("Documents delete : ", result.DeletedCount)
 }
 
-func (db *databaseConfig) getAllRooms() {
-	cursor, err := db.roomColl.Find(context.TODO(), bson.M{})
+func (db *databaseConfig) getAllRooms(username string) ([]Room, error) {
+	filter := bson.D{{Key: "users.user_name", Value: username}}
+	cursor, err := db.roomColl.Find(context.TODO(), filter)
 	if err != nil {
 		log.Println("error in finding rooms : ", err.Error())
+		return []Room{}, err
 	}
-	var rooms []bson.M
+
+	var rooms []Room
 	if err := cursor.All(context.TODO(), &rooms); err != nil {
 		log.Println("error quering rooms : ", err.Error())
+		return []Room{}, err
 	}
 
-	for _, room := range rooms {
-		log.Println(room)
-	}
-}
-
-func printRooms() {
-	log.Println("printing rooms...")
+	return rooms, nil
 }

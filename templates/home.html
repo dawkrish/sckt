@@ -9,9 +9,8 @@
 </head>
 
 <body>
-  <p id="flash-message" class="{{.Color}}">{{.Msg}}</p>
   <h1>Welcome to home page</h1>
-  <br>
+  <p class="{{.Color}}">{{.Msg}}</p>
   <form action="/room/create" method="post">
     <label for="roomName">Room Name</label>
     <input type="text" name="roomName" required>
@@ -24,6 +23,14 @@
     <button>Join Room</button>
   </form>
 
+  <br>
+  <h3>Rooms </h3>
+  <br>
+  <ul>
+    {{range .Rooms}}
+    <li> <a href="/chat/{{.Code}}">{{.Name}}</a> </li>
+    {{end}}
+  </ul>
   <script>
     const flashMessage = document.getElementById("flash-message")
   </script>

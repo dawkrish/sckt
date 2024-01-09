@@ -8,6 +8,8 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,7 +27,9 @@ type templateConfig struct {
 	home   *template.Template
 	login  *template.Template
 	signup *template.Template
+	chat   *template.Template
 }
+
 type databaseConfig struct {
 	mongoClient *mongo.Client
 	userColl    *mongo.Collection
@@ -46,18 +50,22 @@ func main() {
 	}
 	defer cfg.db.mongoClient.Disconnect(context.TODO())
 
-	r := http.NewServeMux()
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
 	fs := http.FileServer(http.Dir("./static"))
 
-	r.Handle("/static/", http.StripPrefix("/static/", fs))
-	r.HandleFunc("/login", cfg.loginHandler)
-	r.HandleFunc("/signup", cfg.signupHandler)
-	r.HandleFunc("/", cfg.homeHandler)
-	r.HandleFunc("/room", cfg.roomHandler)
-	r.HandleFunc("/room/create", cfg.createRoomHandler)
-	r.HandleFunc("/room/join", cfg.joinRoomHandler)
+	r.Get("/", cfg.homeHandler)
 
-	r.HandleFunc("/ws", cfg.wsHandler)
+	r.Get("/login", cfg.GetLoginHandler)
+	r.Post("/login", cfg.PostLoginHandler)
+	r.Get("/signup", cfg.GetSignupHandler)
+	r.Post("/signup", cfg.PostSignupHandler)
+	r.Post("/room/create", cfg.createRoomHandler)
+	r.Post("/room/join", cfg.joinRoomHandler)
+	r.Get("/chat/{id:[0-9]+}", cfg.chatHandler)
+
+	r.Handle("/static/", http.StripPrefix("/static/", fs))
+	r.Get("/ws", cfg.wsHandler)
 
 	log.Println("listening on http://localhost:8080")
 	http.ListenAndServe("localhost:8080", r)
@@ -76,10 +84,15 @@ func initalizeCfg() (Config, error) {
 	if err != nil {
 		return Config{}, errors.New("error parsing signup.html : " + err.Error())
 	}
+	chatTemplate, err := template.ParseFiles("./templates/chat.html")
+	if err != nil {
+		return Config{}, errors.New("error parsing chat.html : " + err.Error())
+	}
 	tmpl := templateConfig{
 		home:   homeTemplate,
 		login:  loginTemplate,
 		signup: signupTemplate,
+		chat:   chatTemplate,
 	}
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
