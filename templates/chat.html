@@ -18,6 +18,8 @@
 
 <body>
   <p>Welcome to chat page</p>
+  <p>Username : {{.Username}}</p>
+
   <h3 id="code">{{.Code}}</h3>
   <input type="text" id="input-text">
   <button id="send-btn">send</button>
@@ -27,8 +29,6 @@
   </div>
 
   <script>
-    console.log("is console log working ?")
-
     const code = document.getElementById('code').innerHTML
     const inputText = document.getElementById('input-text')
     const sendButton = document.getElementById('send-btn')

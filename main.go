@@ -40,7 +40,12 @@ type databaseConfig struct {
 
 type ClientRoom struct {
 	Code       int
-	ClientList []*websocket.Conn
+	ClientList []Client
+}
+
+type Client struct {
+	Conn     *websocket.Conn
+	Username string
 }
 
 func main() {
