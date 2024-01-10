@@ -17,10 +17,11 @@ import (
 )
 
 type Config struct {
-	db         *databaseConfig
-	tmpl       *templateConfig
-	upgrader   websocket.Upgrader
-	JWT_SECRET []byte
+	db          *databaseConfig
+	tmpl        *templateConfig
+	upgrader    websocket.Upgrader
+	JWT_SECRET  []byte
+	ClientRooms []ClientRoom
 }
 
 type templateConfig struct {
@@ -39,7 +40,6 @@ type databaseConfig struct {
 
 type ClientRoom struct {
 	Code       int
-	Name       string
 	ClientList []*websocket.Conn
 }
 
@@ -53,6 +53,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	fs := http.FileServer(http.Dir("./static"))
+	r.Handle("/static/*", http.StripPrefix("/static/", fs))
 
 	r.Get("/", cfg.homeHandler)
 
@@ -62,10 +63,9 @@ func main() {
 	r.Post("/signup", cfg.PostSignupHandler)
 	r.Post("/room/create", cfg.createRoomHandler)
 	r.Post("/room/join", cfg.joinRoomHandler)
-	r.Get("/chat/{id:[0-9]+}", cfg.chatHandler)
+	r.Get("/chat/{code:[0-9]+}", cfg.chatHandler)
 
-	r.Handle("/static/", http.StripPrefix("/static/", fs))
-	r.Get("/ws", cfg.wsHandler)
+	r.Get("/ws/{code:[0-9]+}", cfg.wsHandler)
 
 	log.Println("listening on http://localhost:8080")
 	http.ListenAndServe("localhost:8080", r)
@@ -123,10 +123,11 @@ func initalizeCfg() (Config, error) {
 	}
 
 	cfg := Config{
-		db:         &dbCfg,
-		tmpl:       &tmpl,
-		upgrader:   upgrader,
-		JWT_SECRET: []byte(JWT_SECRET),
+		db:          &dbCfg,
+		tmpl:        &tmpl,
+		upgrader:    upgrader,
+		JWT_SECRET:  []byte(JWT_SECRET),
+		ClientRooms: []ClientRoom{},
 	}
 	return cfg, nil
 }

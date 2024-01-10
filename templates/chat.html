@@ -18,38 +18,38 @@
 
 <body>
   <p>Welcome to chat page</p>
-  <h3> This is room {{.Code}} </p>
-    <input type="text" id="input-text">
-    <button id="send-btn">send</button>
-    <br>
-    <div id="message-list">
+  <h3 id="code">{{.Code}}</h3>
+  <input type="text" id="input-text">
+  <button id="send-btn">send</button>
+  <br>
+  <div id="message-list">
 
-    </div>
+  </div>
 
-    <script>
-      console.log("is console log working ?")
+  <script>
+    console.log("is console log working ?")
 
-      const inputText = document.getElementById('input-text')
-      const sendButton = document.getElementById('send-btn')
-      const messageList = document.getElementById('message-list')
+    const code = document.getElementById('code').innerHTML
+    const inputText = document.getElementById('input-text')
+    const sendButton = document.getElementById('send-btn')
+    const messageList = document.getElementById('message-list')
 
-      sendButton.addEventListener('click', () => {
-        socket.send(inputText.value)
-      })
+    sendButton.addEventListener('click', () => {
+      socket.send(inputText.value)
+    })
 
-      const socket = new WebSocket("ws://localhost:8080/ws")
-      console.log(socket)
-      socket.onopen = (e) => {
-        socket.send("the connection has opened")
-      }
-      socket.onmessage = (e) => {
-        // const msgTag = document.createElement('p')
-        // msgTag.innerHTML = e.data
-        // msgTag.classList.add('message')
-        // messageList.appendChild(msgTag)
-        messageList.innerHTML += `<p class="message">${e.data}</p>`
-      }
-    </script>
+    const socket = new WebSocket(`ws://localhost:8080/ws/${code}`)
+    console.log(socket)
+    socket.onopen = (e) => {
+      socket.send("the connection has opened")
+    }
+    socket.onmessage = (e) => {
+      messageList.innerHTML += `<p class="message">${e.data}</p>`
+    }
+    socket.onclose = (e) => {
+      socket.send("the connection has closed")
+    }
+  </script>
 </body>
 
 </html>

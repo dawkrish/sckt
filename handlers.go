@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	// "github.com/gorilla/websocket"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -16,24 +17,36 @@ type flashMsg struct {
 }
 
 func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("websocket connection established...")
+	code, _ := strconv.Atoi(chi.URLParam(r, "code"))
 	conn, err := cfg.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("error in upgrading : ", err)
 	}
-	defer conn.Close()
-	// room.ClientList = append(room.ClientList, conn)
+	clientRoom := ClientRoom{
+		Code: code,
+	}
+
+	clientRoom.ClientList = append(clientRoom.ClientList, conn)
+	cfg.ClientRooms = append(cfg.ClientRooms, clientRoom)
+	log.Println("websocket-connection-", code, " : established")
+	log.Println(cfg.ClientRooms)
+	// defer conn.Close()
 	// infinite read loop
 	for {
 		mt, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("read failed: ", err)
+			conn.Close()
+			return
 		}
 
 		if string(message) == "the connection has opened" {
 
 			log.Println("message recieved : ", string(message))
 			conn.WriteMessage(mt, message)
+		} else if string(message) == "the connection has closed" {
+			log.Println("message recieved : ", string(message))
+			conn.Close()
 		} else {
 			log.Println("broadcasting message : ", string(message))
 			// broadcast(room, mt, message)
@@ -110,6 +123,7 @@ func (cfg *Config) PostSignupHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println(newUser)
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
+
 func (cfg *Config) GetLoginHandler(w http.ResponseWriter, r *http.Request) {
 	msg := GetFlash(w, r, "errorMessage")
 	if msg == "" {
@@ -191,7 +205,7 @@ func (cfg *Config) createRoomHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *Config) chatHandler(w http.ResponseWriter, r *http.Request) {
-	code, _ := strconv.Atoi(chi.URLParam(r, "id"))
+	code, _ := strconv.Atoi(chi.URLParam(r, "code"))
 
 	var data struct {
 		Code int
