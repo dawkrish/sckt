@@ -1,13 +1,14 @@
 package main
 
 import (
-	"errors"
+	"context"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"go.mongodb.org/mongo-driver/bson"
 	// "github.com/gorilla/websocket"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -17,22 +18,13 @@ type flashMsg struct {
 	Color string
 }
 
-func isClientExists(clientList []Client, newClient Client) int {
-	for in, val := range clientList {
-		if val.Username == newClient.Username {
-			return in
+func (cfg *Config) isClientExists(newClient Client) (Client, int) {
+	for _, v := range cfg.Clients {
+		if v.RoomCode == newClient.RoomCode && v.Username == newClient.Username {
+			return v, 1
 		}
 	}
-	return -1
-}
-
-func (cfg *Config) isClientRoomExists(newCode int) (ClientRoom, error) {
-	for _, val := range cfg.ClientRooms {
-		if val.Code == newCode {
-			return val, nil
-		}
-	}
-	return ClientRoom{}, errors.New("no clientRoom exists with this code")
+	return Client{}, -1
 }
 
 func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -41,27 +33,28 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 	code, _ := strconv.Atoi(chi.URLParam(r, "code"))
+	client := Client{
+		Username: username,
+		RoomCode: code,
+	}
+	pseudoClient, existCode := cfg.isClientExists(client)
+	if existCode == 1 {
+		log.Println("this client is already in the room")
+		pseudoClient.Conn.Close()
+		w.Write([]byte("one window is already open for this chat..."))
+		return
+	}
 	conn, err := cfg.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("error in upgrading : ", err)
 	}
-	client := Client{
-		Username: username,
-		Conn:     conn,
-	}
-	clientRoom, err := cfg.isClientRoomExists(code)
-	if err == nil {
-		// a room with this code already exist...
-	}
-	if isClientExists(clientRoom.ClientList, client) == -1 {
-		clientRoom.ClientList = append(clientRoom.ClientList, client)
-	}
-	cfg.ClientRooms = append(cfg.ClientRooms, clientRoom)
+	client.Conn = conn
+	cfg.Clients = append(cfg.Clients, client)
+	log.Println(cfg.Clients)
 	log.Printf("websocket-connection-%v-established-by-%v\n", code, username)
-	// defer conn.Close()
-	// infinite read loop
 	for {
 		mt, message, err := conn.ReadMessage()
+		log.Println("message recieved : ", string(message))
 		if err != nil {
 			log.Println("read failed: ", err)
 			conn.Close()
@@ -69,7 +62,6 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if string(message) == "the connection has opened" {
-
 			log.Println("message recieved : ", string(message))
 			conn.WriteMessage(mt, message)
 		} else if string(message) == "the connection has closed" {
@@ -77,10 +69,23 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 			conn.Close()
 		} else {
 			log.Println("broadcasting message : ", string(message))
-			// broadcast(room, mt, message)
+			customClients := []Client{}
+			for _, v := range cfg.Clients {
+				if v.RoomCode == code {
+					customClients = append(customClients, v)
+				}
+			}
+			broadcast(mt, message, customClients)
 		}
 	}
 
+}
+
+func broadcast(mt int, msg []byte, customClients []Client) {
+	log.Println("the clients i will broadcast to : ", customClients)
+	for _, v := range customClients {
+		v.Conn.WriteMessage(mt, msg)
+	}
 }
 
 func (cfg *Config) homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -190,32 +195,40 @@ func (cfg *Config) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *Config) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
+	username, err := cfg.middlewareJwt(w, r)
+	if err != nil {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	}
+	user, _ := cfg.db.getUserByUserName(username)
+	log.Println("the user that will join room... ", user)
 	roomCodeString := r.FormValue("roomCode")
 	roomCodeNumerical, _ := strconv.Atoi(roomCodeString)
 
-	_, err := cfg.db.getRoomByCode(roomCodeNumerical)
+	room, err := cfg.db.getRoomByCode(roomCodeNumerical)
 	if err != nil {
 		SetFlash(w, "errorMessage", "room-code does not exist")
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
+
+	filter := bson.D{{Key: "code", Value: room.Code}}
+	update := bson.D{{Key: "$push", Value: bson.D{{Key: "users", Value: user}}}}
+
+	result, err := cfg.db.roomColl.UpdateOne(context.TODO(), filter, update)
+	log.Println("error in updating room's user's ", err)
+	log.Printf("Matched Count : %v \n Updated Count : %v\n", result.MatchedCount, result.ModifiedCount)
+
 }
 
 func (cfg *Config) createRoomHandler(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("jwt")
-	if err != nil {
-		SetFlash(w, "errorMessage", "you need to login")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
-	}
-	username, err := cfg.validateJwt(cookie.Value)
+	username, err := cfg.middlewareJwt(w, r)
 	if err != nil {
 		SetFlash(w, "errorMessage", "you need to login")
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 	roomName := r.FormValue("roomName")
-	user, err := cfg.db.getUserByUserName(username)
+	user, _ := cfg.db.getUserByUserName(username)
 	room, err := cfg.db.createRoom(user, roomName)
 	if err != nil {
 		log.Println("error creating room : " + err.Error())
@@ -237,11 +250,6 @@ func (cfg *Config) chatHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	data.Code = code
 	data.Username = username
+
 	cfg.tmpl.chat.Execute(w, data)
 }
-
-// func broadcast(room Room, mt int, msg []byte) {
-// 	// for _,con := range room.ClientList{
-// 	// 	con.WriteMessage(mt, []byte(msg))
-// 	// }
-// }

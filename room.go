@@ -15,7 +15,7 @@ type Room struct {
 	Name      string    `bson:"name"`
 	Code      int       `bson:"code"`
 	Messages  []Message `bson:"messages"`
-	Users     []User    `bson:"users"`
+	Members   []string  `bson:"members"`
 	CreatedAt time.Time `bson:"created_at"`
 	UpdatedAt time.Time `bson:"updated_at"`
 }
@@ -45,7 +45,7 @@ func (db *databaseConfig) createRoom(user User, name string) (Room, error) {
 		Name:      name,
 		Code:      db.generateRandomRoomCode(),
 		Messages:  []Message{},
-		Users:     []User{user},
+		Members:   []string{user.UserName},
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -67,7 +67,7 @@ func (db *databaseConfig) deleteAllRooms() {
 }
 
 func (db *databaseConfig) getAllRooms(username string) ([]Room, error) {
-	filter := bson.D{{Key: "users.user_name", Value: username}}
+	filter := bson.D{{Key: "members", Value: bson.D{{Key: "$all", Value: username}}}}
 	cursor, err := db.roomColl.Find(context.TODO(), filter)
 	if err != nil {
 		log.Println("error in finding rooms : ", err.Error())

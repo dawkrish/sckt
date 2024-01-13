@@ -17,11 +17,11 @@ import (
 )
 
 type Config struct {
-	db          *databaseConfig
-	tmpl        *templateConfig
-	upgrader    websocket.Upgrader
-	JWT_SECRET  []byte
-	ClientRooms []ClientRoom
+	db         *databaseConfig
+	tmpl       *templateConfig
+	upgrader   websocket.Upgrader
+	JWT_SECRET []byte
+	Clients    []Client
 }
 
 type templateConfig struct {
@@ -46,6 +46,7 @@ type ClientRoom struct {
 type Client struct {
 	Conn     *websocket.Conn
 	Username string
+	RoomCode int
 }
 
 func main() {
@@ -128,11 +129,11 @@ func initalizeCfg() (Config, error) {
 	}
 
 	cfg := Config{
-		db:          &dbCfg,
-		tmpl:        &tmpl,
-		upgrader:    upgrader,
-		JWT_SECRET:  []byte(JWT_SECRET),
-		ClientRooms: []ClientRoom{},
+		db:         &dbCfg,
+		tmpl:       &tmpl,
+		upgrader:   upgrader,
+		JWT_SECRET: []byte(JWT_SECRET),
+		Clients:    []Client{},
 	}
 	return cfg, nil
 }
