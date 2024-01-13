@@ -17,7 +17,7 @@ type flashMsg struct {
 	Color string
 }
 
-func ifClientExists(clientList []Client, newClient Client) int {
+func isClientExists(clientList []Client, newClient Client) int {
 	for in, val := range clientList {
 		if val.Username == newClient.Username {
 			return in
@@ -49,19 +49,13 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 		Username: username,
 		Conn:     conn,
 	}
-	clientRoom := ClientRoom{
-		Code: code,
+	clientRoom, err := cfg.isClientRoomExists(code)
+	if err == nil {
+		// a room with this code already exist...
 	}
-	// we need to check that this client room code exists already or not
-	// if cfg.isClientRoomExists(code) == -1 {
-	// 	clientRoom := ClientRoom{
-	// 		Code: code,
-	// 	}
-	// }
-
-	// if ifClientExists(clientRoom.ClientList)
-	// we need to check that the client room we are adding, should not have
-	clientRoom.ClientList = append(clientRoom.ClientList, client)
+	if isClientExists(clientRoom.ClientList, client) == -1 {
+		clientRoom.ClientList = append(clientRoom.ClientList, client)
+	}
 	cfg.ClientRooms = append(cfg.ClientRooms, clientRoom)
 	log.Printf("websocket-connection-%v-established-by-%v\n", code, username)
 	// defer conn.Close()
