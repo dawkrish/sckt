@@ -33,7 +33,7 @@ func (db *databaseConfig) generateRandomRoomCode() int {
 
 func (db *databaseConfig) getRoomByCode(code int) (Room, error) {
 	var room Room
-	result := db.roomColl.FindOne(context.TODO(), bson.D{{Key: "code", Value: code}}).Decode(room)
+	result := db.roomColl.FindOne(context.TODO(), bson.D{{Key: "code", Value: code}}).Decode(&room)
 	if result == mongo.ErrNoDocuments {
 		return Room{}, errors.New("room not found")
 	}
@@ -67,7 +67,7 @@ func (db *databaseConfig) deleteAllRooms() {
 }
 
 func (db *databaseConfig) getAllRooms(username string) ([]Room, error) {
-	filter := bson.D{{Key: "members", Value: bson.D{{Key: "$all", Value: username}}}}
+	filter := bson.D{{Key: "members", Value: bson.D{{Key: "$eq", Value: username}}}}
 	cursor, err := db.roomColl.Find(context.TODO(), filter)
 	if err != nil {
 		log.Println("error in finding rooms : ", err.Error())

@@ -92,6 +92,7 @@ func (cfg *Config) homeHandler(w http.ResponseWriter, r *http.Request) {
 	username, err := cfg.middlewareJwt(w, r)
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
 	}
 	var data struct {
 		Msg   string
@@ -200,10 +201,8 @@ func (cfg *Config) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 	user, _ := cfg.db.getUserByUserName(username)
-	log.Println("the user that will join room... ", user)
 	roomCodeString := r.FormValue("roomCode")
 	roomCodeNumerical, _ := strconv.Atoi(roomCodeString)
-
 	room, err := cfg.db.getRoomByCode(roomCodeNumerical)
 	if err != nil {
 		SetFlash(w, "errorMessage", "room-code does not exist")
@@ -211,13 +210,19 @@ func (cfg *Config) joinRoomHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for _, member := range room.Members {
+		if member == user.UserName {
+			SetFlash(w, "errorMessage", "you are already in this room")
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+	}
+
 	filter := bson.D{{Key: "code", Value: room.Code}}
-	update := bson.D{{Key: "$push", Value: bson.D{{Key: "users", Value: user}}}}
-
-	result, err := cfg.db.roomColl.UpdateOne(context.TODO(), filter, update)
-	log.Println("error in updating room's user's ", err)
-	log.Printf("Matched Count : %v \n Updated Count : %v\n", result.MatchedCount, result.ModifiedCount)
-
+	update := bson.D{{Key: "$push", Value: bson.D{{Key: "members", Value: user.UserName}}}}
+	_, err = cfg.db.roomColl.UpdateOne(context.TODO(), filter, update)
+	// log.Printf("Matched Count : %v \n Updated Count : %v\n", result.MatchedCount, result.ModifiedCount)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func (cfg *Config) createRoomHandler(w http.ResponseWriter, r *http.Request) {
