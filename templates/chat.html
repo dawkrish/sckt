@@ -19,7 +19,6 @@
 <body>
   <p>Welcome to chat page</p>
   <p id="username" data-username="{{.Username}}">Username : {{.Username}}</p>
-
   <h3 id="code" data-code="{{.Code}}">Room Code > {{.Code}}</h3>
   <input type="text" id="input-text">
   <button id="send-btn">send</button>
@@ -46,6 +45,10 @@
       socket.send("the connection has opened")
     }
     socket.onmessage = (e) => {
+      let msgArr = e.data.split(":")
+      let sender = msgArr[0]
+      let text = msgArr[1]
+      console.log("sender : ",sender, "text : ",text)
       messageList.innerHTML += `<p class="message">${e.data}</p>`
     }
     socket.onclose = (e) => {

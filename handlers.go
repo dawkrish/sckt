@@ -5,10 +5,12 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
+
 	// "github.com/gorilla/websocket"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -47,14 +49,12 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 		Conn:     conn,
 	}
 
-	log.Println("the clients before : ", cfg.Clients)
 	exists := cfg.isClientExists(client)
 	if exists == -1 {
 		cfg.Clients = append(cfg.Clients, client)
 	} else {
 		cfg.Clients[exists] = client
 	}
-	log.Println("the clients after : ", cfg.Clients)
 	// log.Printf("websocket-connection-%v-established-by-%v\n", code, username)
 	for {
 		mt, message, err := conn.ReadMessage()
@@ -69,7 +69,11 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println("message recieved : ", string(message))
 			conn.WriteMessage(mt, message)
 		} else {
-			log.Println("broadcasting message : ", string(message))
+			msgArr := strings.Split(string(message), ":")
+			sender := msgArr[0]
+			text := msgArr[1]
+			log.Println(sender, text)
+			// cfg.db.createMessage()
 			customClients := []Client{}
 			for _, v := range cfg.Clients {
 				if v.RoomCode == code {
@@ -83,7 +87,7 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func broadcast(mt int, msg []byte, customClients []Client) {
-	log.Println("the clients i will broadcast to : ", customClients)
+	// log.Println("the clients i will broadcast to : ", customClients)
 	for _, v := range customClients {
 		v.Conn.WriteMessage(mt, msg)
 	}
