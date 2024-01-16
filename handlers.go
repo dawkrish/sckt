@@ -18,13 +18,17 @@ type flashMsg struct {
 	Color string
 }
 
-func (cfg *Config) isClientExists(newClient Client) (Client, int) {
-	for _, v := range cfg.Clients {
+func (cfg *Config) isClientExists(newClient Client) int {
+	for in, v := range cfg.Clients {
 		if v.RoomCode == newClient.RoomCode && v.Username == newClient.Username {
-			return v, 1
+
+			cfg.Clients[in].Conn.Close()
+			// cfg.Clients[in] = cfg.Clients[len(cfg.Clients)-1]
+			// cfg.Clients = cfg.Clients[:len(cfg.Clients)-1]
+			return in
 		}
 	}
-	return Client{}, -1
+	return -1
 }
 
 func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -33,28 +37,28 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
 	code, _ := strconv.Atoi(chi.URLParam(r, "code"))
-	client := Client{
-		Username: username,
-		RoomCode: code,
-	}
-	pseudoClient, existCode := cfg.isClientExists(client)
-	if existCode == 1 {
-		log.Println("this client is already in the room")
-		pseudoClient.Conn.Close()
-		w.Write([]byte("one window is already open for this chat..."))
-		return
-	}
 	conn, err := cfg.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("error in upgrading : ", err)
 	}
-	client.Conn = conn
-	cfg.Clients = append(cfg.Clients, client)
-	log.Println(cfg.Clients)
-	log.Printf("websocket-connection-%v-established-by-%v\n", code, username)
+	client := Client{
+		Username: username,
+		RoomCode: code,
+		Conn:     conn,
+	}
+
+	log.Println("the clients before : ", cfg.Clients)
+	exists := cfg.isClientExists(client)
+	if exists == -1 {
+		cfg.Clients = append(cfg.Clients, client)
+	} else {
+		cfg.Clients[exists] = client
+	}
+	log.Println("the clients after : ", cfg.Clients)
+	// log.Printf("websocket-connection-%v-established-by-%v\n", code, username)
 	for {
 		mt, message, err := conn.ReadMessage()
-		log.Println("message recieved : ", string(message))
+		// log.Println("message recieved : ", string(message), "message type :", mt)
 		if err != nil {
 			log.Println("read failed: ", err)
 			conn.Close()
@@ -64,9 +68,6 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 		if string(message) == "the connection has opened" {
 			log.Println("message recieved : ", string(message))
 			conn.WriteMessage(mt, message)
-		} else if string(message) == "the connection has closed" {
-			log.Println("message recieved : ", string(message))
-			conn.Close()
 		} else {
 			log.Println("broadcasting message : ", string(message))
 			customClients := []Client{}
@@ -190,7 +191,7 @@ func (cfg *Config) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:    "jwt",
 		Value:   tokenString,
-		Expires: time.Now().Add(time.Minute * 2),
+		Expires: time.Now().Add(time.Minute * 3),
 	})
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

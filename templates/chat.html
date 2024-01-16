@@ -18,9 +18,9 @@
 
 <body>
   <p>Welcome to chat page</p>
-  <p>Username : {{.Username}}</p>
+  <p id="username" data-username="{{.Username}}">Username : {{.Username}}</p>
 
-  <h3 id="code">{{.Code}}</h3>
+  <h3 id="code" data-code="{{.Code}}">Room Code > {{.Code}}</h3>
   <input type="text" id="input-text">
   <button id="send-btn">send</button>
   <br>
@@ -29,16 +29,18 @@
   </div>
 
   <script>
-    const code = document.getElementById('code').innerHTML
-    const inputText = document.getElementById('input-text')
+    const codeTag = document.getElementById('code')
+    const usernameTag = document.getElementById('username')
+    const inputTag = document.getElementById('input-text')
     const sendButton = document.getElementById('send-btn')
     const messageList = document.getElementById('message-list')
 
     sendButton.addEventListener('click', () => {
-      socket.send(inputText.value)
+      let msg = `${usernameTag.dataset.username}:${inputTag.value}`
+      socket.send(msg)
     })
 
-    const socket = new WebSocket(`ws://localhost:8080/ws/${code}`)
+    const socket = new WebSocket(`ws://localhost:8080/ws/${codeTag.dataset.code}`)
     console.log(socket)
     socket.onopen = (e) => {
       socket.send("the connection has opened")
@@ -47,7 +49,7 @@
       messageList.innerHTML += `<p class="message">${e.data}</p>`
     }
     socket.onclose = (e) => {
-      socket.send("the connection has closed")
+      alert("this window is inactive because there is another tab of this chat opened, either switch to that or refresh this and close the other one")
     }
   </script>
 </body>

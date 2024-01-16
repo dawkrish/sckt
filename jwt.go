@@ -10,7 +10,7 @@ import (
 
 func (cfg *Config) generateJwt(username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
-		ExpiresAt: time.Now().Add(2 * time.Minute).Unix(),
+		ExpiresAt: time.Now().Add(3 * time.Minute).Unix(),
 		Subject:   username,
 	})
 	tokenString, err := token.SignedString(cfg.JWT_SECRET)
