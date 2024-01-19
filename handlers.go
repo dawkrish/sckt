@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -257,9 +258,34 @@ func (cfg *Config) chatHandler(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Code     int
 		Username string
+		Messages []Message
 	}
+
+	messages, err := cfg.db.getAllMessagesByRoomCode(code)
+	if err != nil {
+		log.Println("error in fetching messages : ", err.Error())
+		return
+	}
+
+	// for _, message := range messages {
+	// 	message.CreatedAt = formattedTime(message.CreatedAt)
+	// }
+
 	data.Code = code
 	data.Username = username
+	data.Messages = messages
 
 	cfg.tmpl.chat.Execute(w, data)
+}
+
+func formattedTime(t time.Time) string {
+	return fmt.Sprintf(
+		"%d-%d-%d %d:%d:%d\n",
+		t.Hour(),
+		t.Minute(),
+		t.Second(),
+		t.Day(),
+		t.Month(),
+		t.Year(),
+	)
 }

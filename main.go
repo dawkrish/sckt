@@ -56,12 +56,6 @@ func main() {
 	}
 	defer cfg.db.mongoClient.Disconnect(context.TODO())
 
-	log.Println(cfg.db.getAllMessagesByRoomCode(10384139))
-	// cfg.db.createMessage(103841, "this day is a good day", "vansh")
-	// cfg.db.createMessage(103841, "this is second message by vansh", "vansh")
-	// cfg.db.createMessage(103841, "this day is a bad day", "anant")
-	// cfg.db.createMessage(103841, "this is second message by anant", "anant")
-
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	fs := http.FileServer(http.Dir("./static"))

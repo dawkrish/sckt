@@ -23,6 +23,12 @@
   <input type="text" id="input-text">
   <button id="send-btn">send</button>
   <br>
+  <div>
+    {{range .Messages}}
+    <p class="message"><span>{{.Sender}}</span> : <span>{{.Text}}</span> ---- <span
+        class="message-time">{{.CreatedAt}}</span></p>
+    {{end}}
+  </div>
   <div id="message-list">
 
   </div>
@@ -33,6 +39,10 @@
     const inputTag = document.getElementById('input-text')
     const sendButton = document.getElementById('send-btn')
     const messageList = document.getElementById('message-list')
+    const messagesTime = document.getElementsByClassName("message-time")
+    // console.log(messagesTime)
+    document.querySelectorAll('.message-time').forEach(formatString)
+    // [...messagesTime].forEach(formatString)
 
     sendButton.addEventListener('click', () => {
       let msg = `${usernameTag.dataset.username}:${inputTag.value}`
@@ -48,11 +58,22 @@
       let msgArr = e.data.split(":")
       let sender = msgArr[0]
       let text = msgArr[1]
-      console.log("sender : ",sender, "text : ",text)
+      console.log("sender : ", sender, "text : ", text)
       messageList.innerHTML += `<p class="message">${e.data}</p>`
     }
     socket.onclose = (e) => {
       alert("this window is inactive because there is another tab of this chat opened, either switch to that or refresh this and close the other one")
+    }
+
+
+    function formatString(item, index) {
+      let time = item.innerText
+      let year = time.slice(0, 4)
+      let month = time.slice(5, 7)
+      let date = time.slice(8, 10)
+
+      let clockTime = time.slice(11, 16)
+      console.log(year, month, date, clockTime)
     }
   </script>
 </body>
