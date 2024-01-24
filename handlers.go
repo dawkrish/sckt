@@ -11,8 +11,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
-
-	// "github.com/gorilla/websocket"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -24,10 +22,7 @@ type flashMsg struct {
 func (cfg *Config) isClientExists(newClient Client) int {
 	for in, v := range cfg.Clients {
 		if v.RoomCode == newClient.RoomCode && v.Username == newClient.Username {
-
 			cfg.Clients[in].Conn.Close()
-			// cfg.Clients[in] = cfg.Clients[len(cfg.Clients)-1]
-			// cfg.Clients = cfg.Clients[:len(cfg.Clients)-1]
 			return in
 		}
 	}
@@ -39,11 +34,13 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 	}
+
 	code, _ := strconv.Atoi(chi.URLParam(r, "code"))
 	conn, err := cfg.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("error in upgrading : ", err)
 	}
+
 	client := Client{
 		Username: username,
 		RoomCode: code,
@@ -56,10 +53,9 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		cfg.Clients[exists] = client
 	}
-	// log.Printf("websocket-connection-%v-established-by-%v\n", code, username)
+
 	for {
 		mt, message, err := conn.ReadMessage()
-		// log.Println("message recieved : ", string(message), "message type :", mt)
 		if err != nil {
 			log.Println("read failed: ", err)
 			conn.Close()
@@ -74,7 +70,6 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 			sender := msgArr[0]
 			text := msgArr[1]
 			log.Println(sender, text)
-			// cfg.db.createMessage()
 			customClients := []Client{}
 			for _, v := range cfg.Clients {
 				if v.RoomCode == code {
@@ -82,13 +77,13 @@ func (cfg *Config) wsHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 			broadcast(mt, message, customClients)
+			cfg.db.createMessage(code, text, sender)
 		}
 	}
 
 }
 
 func broadcast(mt int, msg []byte, customClients []Client) {
-	// log.Println("the clients i will broadcast to : ", customClients)
 	for _, v := range customClients {
 		v.Conn.WriteMessage(mt, msg)
 	}

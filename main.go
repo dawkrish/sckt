@@ -38,11 +38,6 @@ type databaseConfig struct {
 	messageColl *mongo.Collection
 }
 
-type ClientRoom struct {
-	Code       int
-	ClientList []Client
-}
-
 type Client struct {
 	Conn     *websocket.Conn
 	Username string

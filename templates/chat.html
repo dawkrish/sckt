@@ -73,7 +73,10 @@
       let date = time.slice(8, 10)
 
       let clockTime = time.slice(11, 16)
+
+      let representative = `${clockTime}-${date}/${month}/${year}`
       console.log(year, month, date, clockTime)
+      item.innerText = representative
     }
   </script>
 </body>

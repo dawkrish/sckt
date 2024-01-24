@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Sets flash
 func SetFlash(w http.ResponseWriter, name string, value string) {
 	c := http.Cookie{
 		Name:  name,
@@ -14,6 +15,7 @@ func SetFlash(w http.ResponseWriter, name string, value string) {
 	http.SetCookie(w, &c)
 }
 
+// Gets flash
 func GetFlash(w http.ResponseWriter, r *http.Request, name string) string {
 	c, err := r.Cookie(name)
 	if err != nil {
